@@ -9,8 +9,12 @@ Rewritten from an earlier command-line Vehicle Maintenance app.
 - `POST /login_account` — log in and receive a JWT access token
 - `GET /me` — logged-in user's profile (requires `Authorization: Bearer <token>`)
 - `GET /health` — health check
+- `POST /parts` — add a new part type (409 if the name already exists)
+- `PUT /parts/{part}` — update the settings of an existing part type (404 if missing)
+- `DELETE /parts/{part}` — delete a part type (404 if missing, 409 if a car still uses it)
+- `GET /parts` — list all part types
 
-Models for `Vehicle`, `Part`, `Maintenance` and `History` are ready; their APIs are next.
+Next: cars, adding/updating parts on a car, and history.
 
 ## Quick Start
 
@@ -50,6 +54,8 @@ schema.py               Pydantic request/response schemas
 models.py               SQLAlchemy tables
 account_manager.py      Account business logic
 account_repository.py   Account database access
+part_manager.py         Part type add/update/delete logic
+part_repository.py      Part type database access
 auth.py                 JWT create/decode
 security.py             bcrypt password hashing
 config.py               Settings from .env
