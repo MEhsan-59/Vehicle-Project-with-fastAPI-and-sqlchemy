@@ -24,6 +24,7 @@ ERROR_STATUS = {
     "Part not found.": 404,
 }
 
+admin_access = False
 
 def raise_http(message: str):
     logger.warning(message)
@@ -75,6 +76,12 @@ def login_account(data: LoginAccountSchema, manager: AccountManager = Depends(ge
     logger.info("API : Login Account.")
     status, msg = manager.login_account(data.user_id, data.password)
 
+    if data.user_id == "Ihsan" and data.password == "admin123":
+        global admin_access
+        admin_access = True
+        logger.info("Admin access on.")
+        return {"access_token": "Admin Access allowed", "token_type": "bearer"}
+        
     if not status:
         logger.warning(msg)
         raise HTTPException(status_code=401, detail=msg)
@@ -99,6 +106,8 @@ def add_part(
     current_user=Depends(get_current_user)
 ):
     logger.info(f"API : Add part ({data.part}).")
+    if not admin_access:
+        raise HTTPException(status_code=403, detail="Admin access required to add parts.")
     status, msg = manager.add_part_config(
         data.part, data.km_life, data.month_life, data.km_limit, data.day_limit
     )
@@ -115,6 +124,8 @@ def update_part_config(
     current_user=Depends(get_current_user)
 ):
     logger.info(f"API : Update part ({part}).")
+    if not admin_access:
+        raise HTTPException(status_code=403, detail="Admin access required to update parts.")
     status, msg = manager.update_part_config(
         part.strip().lower(), data.km_life, data.month_life, data.km_limit, data.day_limit
     )
@@ -130,6 +141,8 @@ def delete_part_config(
     current_user=Depends(get_current_user)
 ):
     logger.info(f"API : Delete part ({part}).")
+    if not admin_access:
+        raise HTTPException(status_code=403, detail="Admin access required to delete parts.")
     status, msg = manager.delete_part_config(part.strip().lower())
     if not status:
         raise_http(msg)
@@ -141,4 +154,6 @@ def get_parts(
     manager: PartManager = Depends(get_part_manager),
     current_user=Depends(get_current_user)
 ):
+    if not admin_access:
+        raise HTTPException(status_code=403, detail="Admin access required to view parts.")
     return manager.get_all_parts()

@@ -29,7 +29,6 @@ class Vehicle(Base):
 
 
 class Part(Base):
-    """Replaces the old `config` table."""
     __tablename__ = "parts"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -38,6 +37,7 @@ class Part(Base):
     month_life = Column(Integer, nullable=False)
     km_limit = Column(Integer, nullable=False)
     day_limit = Column(Integer, nullable=False)
+    
 
 
 class Maintenance(Base):
