@@ -19,6 +19,8 @@ from account_repository import AccountRepository
 from account_manager import AccountManager
 from part_repository import PartRepository
 from part_manager import PartManager
+from car_repository import CarRepository
+from car_manager import CarManager
 
 
 @pytest.fixture()
@@ -55,8 +57,17 @@ def part_manager(part_repo):
 
 
 @pytest.fixture()
+def car_repo(db_session):
+    return CarRepository(db_session)
+
+
+@pytest.fixture()
+def car_manager(car_repo):
+    return CarManager(car_repo)
+
+
+@pytest.fixture()
 def client(db_session):
-    """TestClient wired to the isolated in-memory test database."""
     from fastapi.testclient import TestClient
     from main import app
     from database import get_db

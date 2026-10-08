@@ -14,7 +14,12 @@ Rewritten from an earlier command-line Vehicle Maintenance app.
 - `DELETE /parts/{part}` — delete a part type (404 if missing, 409 if a car still uses it)
 - `GET /parts` — list all part types
 
-Next: cars, adding/updating parts on a car, and history.
+- `POST /cars` add a car
+- `DELETE /cars/{car_no}` delete a car
+- `PUT /cars/{car_no}/km` update the car's km (cannot go down)
+- `PUT /cars/{car_no}/parts/{part}` add or update a part on a car (next km and date are calculated, history is saved)
+
+Next: listing cars and maintenance details, and a history endpoint.
 
 ## Quick Start
 
@@ -56,6 +61,11 @@ account_manager.py      Account business logic
 account_repository.py   Account database access
 part_manager.py         Part type add/update/delete logic
 part_repository.py      Part type database access
+car_manager.py           Car add, delete and km update logic
+car_repository.py        Car database access
+maintenance_manager.py   Update a part on a car
+maintenance_repository.py  Maintenance database access
+helper.py                Static helpers
 auth.py                 JWT create/decode
 security.py             bcrypt password hashing
 config.py               Settings from .env

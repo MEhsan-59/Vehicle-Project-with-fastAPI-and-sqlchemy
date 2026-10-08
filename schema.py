@@ -1,4 +1,6 @@
 # schema.py
+from datetime import date
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 def _clean(value: str, lower=False, upper=False) -> str:
@@ -70,3 +72,29 @@ class PartConfigResponse(BaseModel):
     month_life: int
     km_limit: int
     day_limit: int
+
+
+class CarCreateSchema(BaseModel):
+    car_no: str = Field(..., min_length=1, max_length=20)
+    model: str = Field(..., min_length=1, max_length=50)
+    company: str = Field(..., min_length=1, max_length=50)
+    onground_km: int = Field(0, ge=0)
+
+    @field_validator("car_no")
+    @classmethod
+    def clean_car_no(cls, v):
+        return _clean(v, upper=True)
+
+    @field_validator("model", "company")
+    @classmethod
+    def clean_text(cls, v):
+        return _clean(v)
+
+
+class CarKmUpdateSchema(BaseModel):
+    onground_km: int = Field(..., ge=0)
+
+
+class CarPartUpdateSchema(BaseModel):
+    changed_km: int = Field(..., ge=0)
+    changed_date: date
