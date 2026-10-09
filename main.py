@@ -1,5 +1,7 @@
 # main.py
-from fastapi import FastAPI, Depends, HTTPException
+from typing import Literal
+
+from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -8,7 +10,7 @@ from schema import (
     CreateAccountSchema, CreateAccountResponse,
     LoginAccountSchema, TokenResponse, ProfileResponse,
     MessageResponse, PartConfigSchema, PartUpdateSchema, PartConfigResponse,
-    CarCreateSchema, CarKmUpdateSchema, CarPartUpdateSchema, ExpiryResponse
+    CarCreateSchema, CarKmUpdateSchema, CarPartUpdateSchema, ExpiryResponse, HistoryResponse
 )
 from account_manager import AccountManager
 from account_repository import AccountRepository
@@ -20,6 +22,8 @@ from maintenance_service import MaintenanceService
 from maintenance_repository import MaintenanceRepository
 from helper import Helper
 from expiry_service import ExpiryService
+from history_repository import HistoryRepository
+from history_service import HistoryService
 from database import get_db
 from auth import decode_access_token, create_access_token
 
@@ -60,6 +64,10 @@ def get_maintenance_service(db: Session = Depends(get_db)) -> MaintenanceService
 
 def get_expiry_service(service: MaintenanceService = Depends(get_maintenance_service)) -> ExpiryService:
     return ExpiryService(service)
+
+
+def get_history_service(db: Session = Depends(get_db)) -> HistoryService:
+    return HistoryService(HistoryRepository(db))
 
 
 def get_current_user(
@@ -249,3 +257,18 @@ def get_expiry(
 ):
     logger.info("API : Check expiry.")
     return service.get_all_expiry(current_user.user_id)
+
+
+@app.get("/history", response_model=list[HistoryResponse])
+def get_history(
+    filter_type: Literal["all", "car", "part"] = "all",
+    value: str | None = Query(None, description="Car number or part name (needed for car and part)"),
+    service: HistoryService = Depends(get_history_service),
+    current_user=Depends(get_current_user)
+):
+    logger.info(f"API : View history ({filter_type}).")
+    if filter_type != "all":
+        if not value or not value.strip():
+            raise_http("Value is required for this filter.")
+        value = Helper.normalize_car_no(value) if filter_type == "car" else Helper.normalize_part(value)
+    return service.get_history(filter_type, value, current_user.user_id)

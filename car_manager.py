@@ -38,6 +38,6 @@ class CarManager:
 
         old_km = vehicle.onground_km
         vehicle.onground_km = km
-        self.car_repo.update_km(vehicle)
+        self.car_repo.update_km(vehicle, old_km)
         logger.info(f"KM updated for {car_no}: {old_km} -> {km}")
         return True, "Onground km updated successfully."

@@ -1,5 +1,5 @@
 # schema.py
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -112,3 +112,16 @@ class ExpiryResponse(BaseModel):
     next_changed_km: int
     next_changed_date: date
     message: str
+
+
+class HistoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    car_no: str
+    action_type: str
+    part_name: str | None
+    changed_km: int | None
+    changed_date: date | None
+    action_timestamp: datetime | None
+    details: str | None
