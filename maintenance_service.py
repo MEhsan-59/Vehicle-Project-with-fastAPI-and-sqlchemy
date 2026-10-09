@@ -1,11 +1,11 @@
-# maintenance_manager.py
+# maintenance_service.py
 from datetime import date
 
 from helper import Helper
 from logger_setup import logger
 
 
-class MaintenanceManager:
+class MaintenanceService:
 
     def __init__(self, car_repo, maintenance_repo, part_repo):
         self.car_repo = car_repo
@@ -38,3 +38,8 @@ class MaintenanceManager:
 
         logger.info(f"{part} {'added' if is_new else 'updated'} for {car_no}")
         return True, f"{part} updated successfully."
+
+    def get_vehicle_details(self, keyword, active_user):
+        results = self.maintenance_repo.get_details(keyword, active_user)
+        logger.debug(f"Found {len(results)} rows for '{keyword}'")
+        return results

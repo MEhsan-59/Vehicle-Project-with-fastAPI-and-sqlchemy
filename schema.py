@@ -1,5 +1,6 @@
 # schema.py
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -98,3 +99,16 @@ class CarKmUpdateSchema(BaseModel):
 class CarPartUpdateSchema(BaseModel):
     changed_km: int = Field(..., ge=0)
     changed_date: date
+
+
+class ExpiryResponse(BaseModel):
+    car_no: str
+    model: str
+    company: str
+    part: str
+    status: Literal["expired", "expiring"]
+    remaining_km: int
+    remaining_days: int
+    next_changed_km: int
+    next_changed_date: date
+    message: str

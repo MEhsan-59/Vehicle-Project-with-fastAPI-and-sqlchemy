@@ -8,7 +8,7 @@ from schema import (
     CreateAccountSchema, CreateAccountResponse,
     LoginAccountSchema, TokenResponse, ProfileResponse,
     MessageResponse, PartConfigSchema, PartUpdateSchema, PartConfigResponse,
-    CarCreateSchema, CarKmUpdateSchema, CarPartUpdateSchema
+    CarCreateSchema, CarKmUpdateSchema, CarPartUpdateSchema, ExpiryResponse
 )
 from account_manager import AccountManager
 from account_repository import AccountRepository
@@ -16,9 +16,10 @@ from part_manager import PartManager
 from part_repository import PartRepository
 from car_manager import CarManager
 from car_repository import CarRepository
-from maintenance_manager import MaintenanceManager
+from maintenance_service import MaintenanceService
 from maintenance_repository import MaintenanceRepository
 from helper import Helper
+from expiry_service import ExpiryService
 from database import get_db
 from auth import decode_access_token, create_access_token
 
@@ -53,8 +54,12 @@ def get_car_manager(db: Session = Depends(get_db)) -> CarManager:
     return CarManager(CarRepository(db))
 
 
-def get_maintenance_manager(db: Session = Depends(get_db)) -> MaintenanceManager:
-    return MaintenanceManager(CarRepository(db), MaintenanceRepository(db), PartRepository(db))
+def get_maintenance_service(db: Session = Depends(get_db)) -> MaintenanceService:
+    return MaintenanceService(CarRepository(db), MaintenanceRepository(db), PartRepository(db))
+
+
+def get_expiry_service(service: MaintenanceService = Depends(get_maintenance_service)) -> ExpiryService:
+    return ExpiryService(service)
 
 
 def get_current_user(
@@ -118,7 +123,8 @@ def get_profile(current_user=Depends(get_current_user)):
 @app.post("/parts", response_model=MessageResponse, status_code=201)
 def add_part(
     data: PartConfigSchema,
-    manager: PartManager = Depends(get_part_manager)
+    manager: PartManager = Depends(get_part_manager),
+    current_user=Depends(get_current_user)
 ):
     logger.info(f"API : Add part ({data.part}).")
     if not admin_access:
@@ -135,7 +141,9 @@ def add_part(
 def update_part_config(
     part: str,
     data: PartUpdateSchema,
-    manager: PartManager = Depends(get_part_manager)):
+    manager: PartManager = Depends(get_part_manager),
+    current_user=Depends(get_current_user)
+):
     logger.info(f"API : Update part ({part}).")
     if not admin_access:
         raise HTTPException(status_code=403, detail="Admin access required to update parts.")
@@ -150,7 +158,9 @@ def update_part_config(
 @app.delete("/parts/{part}", response_model=MessageResponse)
 def delete_part_config(
     part: str,
-    manager: PartManager = Depends(get_part_manager)):
+    manager: PartManager = Depends(get_part_manager),
+    current_user=Depends(get_current_user)
+):
     logger.info(f"API : Delete part ({part}).")
     if not admin_access:
         raise HTTPException(status_code=403, detail="Admin access required to delete parts.")
@@ -162,7 +172,9 @@ def delete_part_config(
 
 @app.get("/parts", response_model=list[PartConfigResponse])
 def get_parts(
-    manager: PartManager = Depends(get_part_manager)):
+    manager: PartManager = Depends(get_part_manager),
+    current_user=Depends(get_current_user)
+):
     if not admin_access:
         raise HTTPException(status_code=403, detail="Admin access required to view parts.")
     return manager.get_all_parts()
@@ -217,14 +229,23 @@ def update_part_on_car(
     car_no: str,
     part: str,
     data: CarPartUpdateSchema,
-    manager: MaintenanceManager = Depends(get_maintenance_manager),
+    service: MaintenanceService = Depends(get_maintenance_service),
     current_user=Depends(get_current_user)
 ):
     logger.info(f"API : Update part ({part}) on car ({car_no}).")
-    status, msg = manager.update_part(
+    status, msg = service.update_part(
         Helper.normalize_car_no(car_no), Helper.normalize_part(part),
         data.changed_km, data.changed_date, current_user.user_id
     )
     if not status:
         raise_http(msg)
     return MessageResponse(status=True, message=msg)
+
+
+@app.get("/expiry", response_model=list[ExpiryResponse])
+def get_expiry(
+    service: ExpiryService = Depends(get_expiry_service),
+    current_user=Depends(get_current_user)
+):
+    logger.info("API : Check expiry.")
+    return service.get_all_expiry(current_user.user_id)
