@@ -1,7 +1,7 @@
 # main.py
 from typing import Literal
 
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -26,8 +26,19 @@ from history_repository import HistoryRepository
 from history_service import HistoryService
 from database import get_db
 from auth import decode_access_token, create_access_token
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(title="Vehicle Manager API", version="2.0")
+
+app.state.limiter = limiter
+app.add_exception_handler(
+    RateLimitExceeded,
+    _rate_limit_exceeded_handler
+)
+
 security_scheme = HTTPBearer()
 
 ERROR_STATUS = {
@@ -86,6 +97,10 @@ def get_current_user(
 
     return account
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
 @app.post("/create_account", response_model=CreateAccountResponse)
 def create_account(data: CreateAccountSchema, manager: AccountManager = Depends(get_account_manager)):
     logger.info("API : Create account.")
@@ -101,22 +116,23 @@ def create_account(data: CreateAccountSchema, manager: AccountManager = Depends(
 
 
 @app.post("/login_account", response_model=TokenResponse)
-def login_account(data: LoginAccountSchema, manager: AccountManager = Depends(get_account_manager)):
+@limiter.limit("5/minute")
+def login_account(
+    request: Request,
+    data: LoginAccountSchema,
+    manager: AccountManager = Depends(get_account_manager)
+):
     logger.info("API : Login Account.")
+
     status, msg = manager.login_account(data.user_id, data.password)
 
-    if data.user_id == "Ihsan" and data.password == "admin123":
-        global admin_access
-        admin_access = True
-        logger.info("Admin access on.")
-        return {"access_token": "Admin Access allowed", "token_type": "bearer"}
-        
     if not status:
         logger.warning(msg)
         raise HTTPException(status_code=401, detail=msg)
 
     token = create_access_token(data.user_id)
     return {"access_token": token, "token_type": "bearer"}
+
 
 
 @app.get("/me", response_model=ProfileResponse)

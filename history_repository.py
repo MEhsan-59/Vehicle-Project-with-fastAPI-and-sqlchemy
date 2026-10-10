@@ -6,7 +6,7 @@ from models import History
 
 class HistoryRepository:
 
-    def __init__(self, database=Session):
+    def __init__(self, database:Session):
         self.db = database
 
     def _newest_first(self, query):

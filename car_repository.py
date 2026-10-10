@@ -44,7 +44,11 @@ class CarRepository:
         self.db.refresh(vehicle)
 
     def delete(self, vehicle):
-        self.db.query(Maintenance).filter(Maintenance.vehicle_id == vehicle.id).delete()
-        self.db.query(History).filter(History.vehicle_id == vehicle.id).delete()
-        self.db.delete(vehicle)
-        self.db.commit()
+        try:
+            self.db.query(Maintenance).filter(Maintenance.vehicle_id == vehicle.id).delete()
+            self.db.query(History).filter(History.vehicle_id == vehicle.id).delete()
+            self.db.delete(vehicle)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise

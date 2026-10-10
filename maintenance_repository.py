@@ -8,7 +8,7 @@ from models import Maintenance, Vehicle, Part
 
 class MaintenanceRepository:
 
-    def __init__(self, database=Session):
+    def __init__(self, database:Session):
         self.db = database
 
     def get_record(self, vehicle_id, part_id):

@@ -7,7 +7,7 @@ from models import Part, Maintenance
 
 class PartRepository:
 
-    def __init__(self, database=Session):
+    def __init__(self, database:Session):
         self.db = database
 
     def get_by_name(self, part_name):
